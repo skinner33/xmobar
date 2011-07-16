@@ -696,14 +696,18 @@ Monitors have default aliases.
 
        Run Brightness ["-t", "<bar>"] 60
 
-`KbdInd Args RefreshRate`
+`KbdInd Args Spec RefreshRate`
 
 - Aliases to `kbd`
 - Args: not used now
+- Spec:
+	- `-e`: String displayed on an error while accessing X (default: "Err")
+	- `-s`: Search string, can be used multiple times
+	- `-r`: Replacement string, one for every Search should be given
 - Default template: `<text>`
 - Example:
 
-		Run KbdInd [] 60
+		Run KbdInd [] ["-s", "us(dvorak)", "-r", "DV", "-s", "us", "-r", "US"] 60
 
 
 ## Monitor Plugins Commands Arguments

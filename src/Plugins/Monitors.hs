@@ -59,7 +59,7 @@ data Monitors = Weather      Station    Args Rate
               | MultiCpu     Args       Rate
               | Battery      Args       Rate
               | Brightness   Args       Rate
-              | KbdInd       Args       Rate
+              | KbdInd       Args       Spec       Rate
               | CpuFreq      Args       Rate
               | CoreTemp     Args       Rate
               | TopProc      Args       Rate
@@ -77,6 +77,7 @@ data Monitors = Weather      Station    Args Rate
                 deriving (Show,Read,Eq)
 
 type Args      = [String]
+type Spec      = [String]
 type Program   = String
 type Alias     = String
 type Station   = String
@@ -98,7 +99,7 @@ instance Exec Monitors where
     alias (Battery _ _) = "battery"
     alias (BatteryP _ _ _)= "battery"
     alias (Brightness _ _) = "bright"
-    alias (KbdInd _ _) = "kbd"
+    alias (KbdInd _ _ _) = "kbd"
     alias (CpuFreq _ _) = "cpufreq"
     alias (TopProc _ _) = "top"
     alias (TopMem _ _) = "topmem"
@@ -129,7 +130,7 @@ instance Exec Monitors where
     start (Battery a r) = runM a battConfig runBatt r
     start (BatteryP s a r) = runM a battConfig (runBatt' s) r
     start (Brightness a r) = runM a brightConfig runBright r
-    start (KbdInd a r) = runM a kbdIndConfig runKbdInd r
+    start (KbdInd a s r) = runM a kbdIndConfig (runKbdInd s) r
     start (CpuFreq a r) = runM a cpuFreqConfig runCpuFreq r
     start (CoreTemp a r) = runM a coreTempConfig runCoreTemp r
     start (DiskU s a r) = runM a diskUConfig (runDiskU s) r

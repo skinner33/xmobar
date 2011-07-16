@@ -23,7 +23,10 @@ import Foreign.C.String
 
 import Graphics.X11.Xlib.Types
 import Graphics.X11.Xlib.Display
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, elemIndex)
+import Data.Maybe (fromJust)
+
+import System.Console.GetOpt
 
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBstr.h>
@@ -278,6 +281,35 @@ xkbGroupNamesMask = #const XkbGroupNamesMask
 noLaySymbols :: [String]
 noLaySymbols = ["group", "inet", "ctr", "pc", "ctrl"]
 
+data KbdOpts = KbdOpts
+	{ errorString :: String
+	, src :: [String]
+    , rpl :: [String]
+	}
+
+defaultOpts :: KbdOpts
+defaultOpts = KbdOpts
+	{ errorString = "Err"
+	, src = []
+	, rpl = []
+	}
+
+options :: [OptDescr (KbdOpts -> KbdOpts)]
+options =
+	[ Option ['e'] ["error"] (ReqArg (\x o -> o { errorString = x }) "") ""
+	, Option ['s'] ["src"] (ReqArg (\x o -> o { src = [x] ++ src o }) "") ""
+	, Option ['r'] ["rpl"] (ReqArg (\x o -> o { rpl = [x] ++ rpl o }) "") ""
+	]
+
+parseOpts :: [String] -> IO KbdOpts
+parseOpts argv =
+	case getOpt Permute options argv of
+		(o, _, []) -> return $ foldr id defaultOpts o
+		(_, _, errs) -> ioError . userError $ concat errs
+
+
+
+
 -- gets the number of the current active layout group
 getActiveLayout :: Display -> IO Int
 getActiveLayout dpy =  do
@@ -285,17 +317,17 @@ getActiveLayout dpy =  do
         return lay
 
 -- gets the layout string
-getLayoutStr :: Display -> IO String
-getLayoutStr dpy =  do
+getLayoutStr :: KbdOpts -> Display -> IO String
+getLayoutStr opts dpy =  do
         kbdDescPtr <- xkbAllocKeyboard
         status <- xkbGetNames dpy xkbSymbolsNameMask kbdDescPtr
-        str <- getLayoutStr' status dpy kbdDescPtr
+        str <- getLayoutStr' opts status dpy kbdDescPtr
         xkbFreeNames kbdDescPtr xkbGroupNamesMask 1
         xkbFreeKeyboard kbdDescPtr 0 1
         return str
 
-getLayoutStr' :: Status -> Display -> (Ptr XkbDescRec) -> IO String
-getLayoutStr' st dpy kbdDescPtr =
+getLayoutStr' :: KbdOpts -> Status -> Display -> (Ptr XkbDescRec) -> IO String
+getLayoutStr' opts st dpy kbdDescPtr =
         if st == 0 then -- Success
             do
             kbdDesc <- peek kbdDescPtr
@@ -305,7 +337,7 @@ getLayoutStr' st dpy kbdDescPtr =
             return str
         else -- Behaviour on error
             do
-            return "Err"
+            return (errorString opts)
 
 -- splits the layout string into the actual layouts
 splitLayout :: String -> [String]
@@ -324,13 +356,24 @@ split (c:cs) delim
         where
             rest = split cs delim
 
-runKbdInd :: [String] -> Monitor String
-runKbdInd args = do
+searchReplaceLayout :: KbdOpts -> String -> String
+searchReplaceLayout opts s = let c = elemIndex s (src opts) in
+    case c of
+        Nothing -> s
+        x -> let i = (fromJust x) in
+            if i >= length (rpl opts) then
+                s
+            else
+                (rpl opts)!!i
+
+runKbdInd :: [String] -> [String] -> Monitor String
+runKbdInd spec _ = do
+    opts <- io $ parseOpts spec
     dpy <- io $ openDisplay ""
-    lay <- io $ getLayoutStr dpy
+    lay <- io $ getLayoutStr opts dpy
     curLay <- io $ getActiveLayout dpy
     io $ closeDisplay dpy
-    return $ (splitLayout lay)!!(curLay)
+    return $ searchReplaceLayout opts $ (splitLayout lay)!!(curLay)
 
 kbdIndConfig :: IO MConfig
 kbdIndConfig = mkMConfig
