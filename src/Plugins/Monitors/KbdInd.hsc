@@ -279,25 +279,33 @@ noLaySymbols :: [String]
 noLaySymbols = ["group", "inet", "ctr", "pc", "ctrl"]
 
 -- gets the number of the current active layout group
-getActiveLayout :: IO Int
-getActiveLayout =  do
-        dpy <- openDisplay ""
+getActiveLayout :: Display -> IO Int
+getActiveLayout dpy =  do
         lay <- getKbdLayout dpy
         return lay
 
 -- gets the layout string
-getLayoutStr :: IO String
-getLayoutStr =  do
+getLayoutStr :: Display -> IO String
+getLayoutStr dpy =  do
         kbdDescPtr <- xkbAllocKeyboard
-        dpy <- openDisplay ""
-        status <- xkbGetNames dpy xkbSymbolsNameMask kbdDescPtr --TODO: check status
-        kbdDesc <- peek kbdDescPtr
-        nameArray <- peek (names kbdDesc)
-        atom <- xGetAtomName dpy (symbols nameArray)
-        str <- peekCString atom
+        status <- xkbGetNames dpy xkbSymbolsNameMask kbdDescPtr
+        str <- getLayoutStr' status dpy kbdDescPtr
         xkbFreeNames kbdDescPtr xkbGroupNamesMask 1
         xkbFreeKeyboard kbdDescPtr 0 1
         return str
+
+getLayoutStr' :: Status -> Display -> (Ptr XkbDescRec) -> IO String
+getLayoutStr' st dpy kbdDescPtr =
+        if st == 0 then -- Success
+            do
+            kbdDesc <- peek kbdDescPtr
+            nameArray <- peek (names kbdDesc)
+            atom <- xGetAtomName dpy (symbols nameArray)
+            str <- peekCString atom
+            return str
+        else -- Behaviour on error
+            do
+            return "Err"
 
 -- splits the layout string into the actual layouts
 splitLayout :: String -> [String]
@@ -309,7 +317,7 @@ splitLayout' bad s  = splitLayout' (tail bad) [x | x <- s, not $ isPrefixOf (hea
 
 -- split String at each Char
 split :: String -> Char -> [String]
-split [] delim = [""]
+split [] _ = [""]
 split (c:cs) delim
     | c == delim = "" : rest
     | otherwise = (c : head rest) : tail rest
@@ -318,8 +326,10 @@ split (c:cs) delim
 
 runKbdInd :: [String] -> Monitor String
 runKbdInd args = do
-    lay <- io $ getLayoutStr
-    curLay <- io $ getActiveLayout
+    dpy <- io $ openDisplay ""
+    lay <- io $ getLayoutStr dpy
+    curLay <- io $ getActiveLayout dpy
+    io $ closeDisplay dpy
     return $ (splitLayout lay)!!(curLay)
 
 kbdIndConfig :: IO MConfig
