@@ -28,6 +28,7 @@ import Plugins.Monitors.Cpu
 import Plugins.Monitors.MultiCpu
 import Plugins.Monitors.Batt
 import Plugins.Monitors.Bright
+import Plugins.Monitors.KbdInd
 import Plugins.Monitors.Thermal
 import Plugins.Monitors.ThermalZone
 import Plugins.Monitors.CpuFreq
@@ -58,6 +59,7 @@ data Monitors = Weather      Station    Args Rate
               | MultiCpu     Args       Rate
               | Battery      Args       Rate
               | Brightness   Args       Rate
+              | KbdInd       Args       Rate
               | CpuFreq      Args       Rate
               | CoreTemp     Args       Rate
               | TopProc      Args       Rate
@@ -96,6 +98,7 @@ instance Exec Monitors where
     alias (Battery _ _) = "battery"
     alias (BatteryP _ _ _)= "battery"
     alias (Brightness _ _) = "bright"
+    alias (KbdInd _ _) = "kbd"
     alias (CpuFreq _ _) = "cpufreq"
     alias (TopProc _ _) = "top"
     alias (TopMem _ _) = "topmem"
@@ -126,6 +129,7 @@ instance Exec Monitors where
     start (Battery a r) = runM a battConfig runBatt r
     start (BatteryP s a r) = runM a battConfig (runBatt' s) r
     start (Brightness a r) = runM a brightConfig runBright r
+    start (KbdInd a r) = runM a kbdIndConfig runKbdInd r
     start (CpuFreq a r) = runM a cpuFreqConfig runCpuFreq r
     start (CoreTemp a r) = runM a coreTempConfig runCoreTemp r
     start (DiskU s a r) = runM a diskUConfig (runDiskU s) r

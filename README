@@ -677,6 +677,8 @@ Monitors have default aliases.
   distribution can be used to set the given property from the output
   of any other program or script.
 
+[samples/xmonadpropwrite.hs script]: https://github.com/jaor/xmobar/raw/master/samples/xmonadpropwrite.hs
+
 `Brightness Args RefreshRate`
 
 - Aliases to `bright`
@@ -694,8 +696,15 @@ Monitors have default aliases.
 
        Run Brightness ["-t", "<bar>"] 60
 
+`KbdInd Args RefreshRate`
 
-[samples/xmonadpropwrite.hs script]: https://github.com/jaor/xmobar/raw/master/samples/xmonadpropwrite.hs
+- Aliases to `kbd`
+- Args: not used now
+- Default template: `<text>`
+- Example:
+
+		Run KbdInd [] 60
+
 
 ## Monitor Plugins Commands Arguments
 
